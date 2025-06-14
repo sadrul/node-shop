@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="https://js.stripe.com/v3/"></script>
+  <style>
+    .checkout-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .checkout-form {
+      background: #f9f9f9;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .order-summary {
+      margin-top: 20px;
+      padding: 20px;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    .order-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .place-order-btn {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 20px;
+      font-size: 1.1em;
+    }
+    #card-element {
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: white;
+    }
+    #card-errors {
+      color: #dc3545;
+      margin-top: 8px;
+      font-size: 0.9em;
+    }
+    .form-floating > .form-control {
+      height: calc(3.5rem + 2px);
+      line-height: 1.25;
+    }
+    
+    .form-floating > label {
+      padding: 1rem 0.75rem;
+    }
+
+    #card-element {
+      background-color: white;
+      padding: 12px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      box-shadow: 0 1px 3px 0 #e6ebf1;
+      transition: box-shadow 150ms ease;
+    }
+
+    #card-element.StripeElement--focus {
+      box-shadow: 0 1px 3px 0 #cfd7df;
+    }
+
+    #card-element.StripeElement--invalid {
+      border-color: #fa755a;
+    }
+
+    #card-errors {
+      color: #fa755a;
+      text-align: left;
+      font-size: 13px;
+      line-height: 17px;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+  <%- include('partials/header') %>
+
+  <div class="container mt-5">
+    <div class="row">
+      <div class="col-md-8">
+        <div class="card">
+          <div class="card-body">
+            <h2 class="card-title mb-4">Checkout</h2>
+            <% if (cart && cart.items.length > 0) { %>
+              <form id="payment-form">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      <input type="text" class="form-control" id="name" name="name" placeholder="Full Name" required>
+                      <label for="name">Full Name</label>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      <input type="email" class="form-control" id="email" name="email" placeholder="Email" required>
+                      <label for="email">Email</label>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-floating mb-3">
+                  <input type="text" class="form-control" id="address" name="address" placeholder="Address" required>
+                  <label for="address">Address</label>
+                </div>
+
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      <input type="text" class="form-control" id="city" name="city" placeholder="City" required>
+                      <label for="city">City</label>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                      <input type="text" class="form-control" id="zipCode" name="zipCode" 
+                        placeholder="Postal Code" required maxlength="4" pattern="[0-9]{4}" 
+                        title="Please enter a valid 4-digit Austrian postal code">
+                      <label for="zipCode">Postal Code</label>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mb-4">
+                  <label for="card-element" class="form-label">Credit or Debit Card</label>
+                  <div id="card-element" class="form-control p-3" style="height: 40px;"></div>
+                  <div id="card-errors" class="text-danger mt-2" role="alert"></div>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 py-3">
+                  Pay €<%= cart.total.toFixed(2) %>
+                </button>
+              </form>
+            <% } else { %>
+              <div class="alert alert-info">
+                Your cart is empty. <a href="/" class="alert-link">Continue shopping</a>
+              </div>
+            <% } %>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card">
+          <div class="card-body">
+            <h3 class="card-title mb-4">Order Summary</h3>
+            <% if (cart && cart.items.length > 0) { %>
+              <div class="list-group list-group-flush mb-4">
+                <% cart.items.forEach(item => { %>
+                  <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                      <h6 class="my-0"><%= item.product.name %></h6>
+                      <small class="text-muted">Quantity: <%= item.quantity %></small>
+                    </div>
+                    <span class="text-muted">€<%= (item.product.price * item.quantity).toFixed(2) %></span>
+                  </div>
+                <% }); %>
+              </div>
+              <div class="d-flex justify-content-between mb-2">
+                <span>Subtotal</span>
+                <span>€<%= cart.total.toFixed(2) %></span>
+              </div>
+              <div class="d-flex justify-content-between mb-2">
+                <span>Shipping</span>
+                <span>Free</span>
+              </div>
+              <hr>
+              <div class="d-flex justify-content-between">
+                <strong>Total</strong>
+                <strong>€<%= cart.total.toFixed(2) %></strong>
+              </div>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const stripe = Stripe('<%= stripePublicKey %>');
+    const elements = stripe.elements({
+      locale: 'de',
+      appearance: {
+        variables: {
+          colorPrimary: '#0d6efd',
+          colorBackground: '#ffffff',
+          colorText: '#30313d',
+          colorDanger: '#dc3545',
+          fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          spacingUnit: '4px',
+          borderRadius: '4px'
+        }
+      }
+    });
+
+    const card = elements.create('card', {
+      style: {
+        base: {
+          fontSize: '16px',
+          color: '#32325d',
+          '::placeholder': {
+            color: '#aab7c4'
+          }
+        },
+        invalid: {
+          color: '#dc3545',
+          iconColor: '#dc3545'
+        }
+      },
+      hidePostalCode: true
+    });
+
+    card.mount('#card-element');
+
+    const form = document.getElementById('payment-form');
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const submitButton = form.querySelector('button[type="submit"]');
+      submitButton.disabled = true;
+
+      try {
+        const { paymentMethod, error } = await stripe.createPaymentMethod({
+          type: 'card',
+          card: card,
+          billing_details: {
+            name: document.getElementById('name').value,
+            email: document.getElementById('email').value,
+            address: {
+              line1: document.getElementById('address').value,
+              city: document.getElementById('city').value,
+              postal_code: document.getElementById('zipCode').value,
+              country: 'AT'
+            }
+          }
+        });
+
+        if (error) {
+          const errorElement = document.getElementById('card-errors');
+          errorElement.textContent = error.message;
+          submitButton.disabled = false;
+          return;
+        }
+
+        const response = await fetch('/checkout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            paymentMethodId: paymentMethod.id,
+            name: document.getElementById('name').value,
+            email: document.getElementById('email').value,
+            address: document.getElementById('address').value,
+            city: document.getElementById('city').value,
+            zipCode: document.getElementById('zipCode').value
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.error) {
+          const errorElement = document.getElementById('card-errors');
+          errorElement.textContent = result.error;
+          submitButton.disabled = false;
+        } else {
+          window.location.href = '/order/success';
+        }
+      } catch (err) {
+        const errorElement = document.getElementById('card-errors');
+        errorElement.textContent = 'An unexpected error occurred.';
+        submitButton.disabled = false;
+      }
+    });
+
+    card.addEventListener('change', function(event) {
+      const displayError = document.getElementById('card-errors');
+      if (event.error) {
+        displayError.textContent = event.error.message;
+      } else {
+        displayError.textContent = '';
+      }
+    });
+  </script>
+
+  <%- include('partials/footer') %>
+</body>
+</html>
