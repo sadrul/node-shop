@@ -1,6 +1,7 @@
 {
   "name": "full-node-shop",
   "version": "1.0.0",
+  "description": "A full-featured e-commerce application built with Node.js, Express, TypeScript, MongoDB, and Stripe payments",
   "main": "server.ts",
   "scripts": {
     "dev": "nodemon server.ts",
